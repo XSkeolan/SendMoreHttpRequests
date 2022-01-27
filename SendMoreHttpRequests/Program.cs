@@ -8,7 +8,7 @@
             string url = "http://webcode.me";
             List<Task<HttpResponseMessage>> tasks = new List<Task<HttpResponseMessage>>();
             List<HttpResponseMessage> data = new List<HttpResponseMessage>();
-            Timer timer = new Timer(Statictic, data, 0, 60000);
+            Timer timer = new Timer(Statictic, data, 60000, 60000);
             while (true)
             {
                 for (int i = 0; i < 10000; i++)

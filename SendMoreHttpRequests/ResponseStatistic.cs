@@ -6,6 +6,7 @@
         private int _total;
         private int _ok;
         private int _failed;
+        private readonly object _lock = new object();
 
         public ResponseStatistic()
         {
@@ -19,20 +20,23 @@
             Console.WriteLine("Остальные: {0}", Failed);
         }
 
-        public void CollectStatict(StatisticType type)
+        public void Collect(StatisticType type)
         {
-            _total++;
-            switch (type)
-            {
-                case StatisticType.Ok:
-                    _ok++;
-                    break;
-                case StatisticType.Failed:
-                    _failed++;
-                    break;
-                default:
-                    break;
-            }
+            //lock (_lock)
+            //{
+                _total++;
+                switch (type)
+                {
+                    case StatisticType.Ok:
+                        _ok++;
+                        break;
+                    case StatisticType.Failed:
+                        _failed++;
+                        break;
+                    default:
+                        break;
+                }
+            //}
         }
 
         public void Dispose()

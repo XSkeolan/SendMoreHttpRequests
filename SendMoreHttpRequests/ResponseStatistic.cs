@@ -2,16 +2,15 @@
 {
     public class ResponseStatistic : IDisposable
     {
-        private Timer _timer;
+        private Timer? _timer = null;
         private int _total;
         private int _ok;
         private int _failed;
-        private readonly object _lock = new object();
 
-        public ResponseStatistic()
-        {
-            _timer = new Timer(GetStatistics, null, 60000, 60000);
-        }
+        //public ResponseStatistic()
+        //{
+        //    _timer = new Timer(GetStatistics, null, 60000, 60000);
+        //}
 
         private void GetStatistics(object? _)
         {
@@ -22,26 +21,24 @@
 
         public void Collect(StatisticType type)
         {
-            //lock (_lock)
-            //{
-                _total++;
-                switch (type)
-                {
-                    case StatisticType.Ok:
-                        _ok++;
-                        break;
-                    case StatisticType.Failed:
-                        _failed++;
-                        break;
-                    default:
-                        break;
-                }
-            //}
+            _timer ??= new Timer(GetStatistics, null, 60000, 60000);
+            _total++;
+            switch (type)
+            {
+                case StatisticType.Ok:
+                    _ok++;
+                    break;
+                case StatisticType.Failed:
+                    _failed++;
+                    break;
+                default:
+                    break;
+            }
         }
 
         public void Dispose()
         {
-            _timer.Dispose();
+            _timer?.Dispose();
         }
 
         public int Ok { get => _ok; }

@@ -14,7 +14,7 @@ namespace SendMoreHttpRequests
             List<Task> tasks = new List<Task>();
             statistic = new ResponseStatistic();
             for (int i = 0; i < 100; i++)
-                tasks.Add(Task.Run(new Action(() =>
+                tasks.Add(Task.Run(() =>
                 {
                     List<Task> tasksRequest = new List<Task>();
                     for (int j = 0; j < 15000; j++)
@@ -38,9 +38,9 @@ namespace SendMoreHttpRequests
                             }
                         }));
                     Task.WaitAll(tasksRequest.ToArray());
-                    Console.WriteLine("{0} of 100 tasks completed 15000 tasks!!!", 100 - --number);
+                    Console.WriteLine("{0} of 100 tasks completed 15000 tasks!!!", 101 - --number);
                     tasksRequest.Clear();
-                }), cts.Token));
+                }, cts.Token));
 
             Console.WriteLine("Input Q or ESC for quit from application");
             ConsoleKeyInfo k;

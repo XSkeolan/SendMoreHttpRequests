@@ -40,20 +40,24 @@ namespace SendMoreHttpRequests
                     Console.WriteLine("{0} of 100 tasks completed 15000 tasks!!!", 100 - --number);
                     tasksRequest.Clear();
                 }));
-            try
+
+            Console.WriteLine("Input Q or ESC for quit from application");
+            ConsoleKeyInfo k;
+            while(true)
             {
-                Task.WaitAll(tasks.ToArray());
-                foreach (var t in tasks)
-                    Console.WriteLine("{0,10} {1,20}", t.Id, t.Status);
+                k = Console.ReadKey(false);
+                switch (k.Key)
+                {
+                    case ConsoleKey.Escape:
+                    case ConsoleKey.Q:
+                        {
+                            Environment.Exit(0);
+                            break;
+                        }
+                    default:
+                        break;
+                }
             }
-            catch (AggregateException)
-            {
-                Console.WriteLine("Status of tasks:\n");
-                Console.WriteLine("{0,10} {1,20}", "Task Id", "Status");
-                foreach (var t in tasks)
-                    Console.WriteLine("{0,10} {1,20}", t.Id, t.Status);
-            }
-            Console.WriteLine("Time end - {0}", DateTime.Now);
         }
     }
 }

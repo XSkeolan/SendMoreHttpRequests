@@ -9,38 +9,53 @@ namespace SendMoreHttpRequests
             ResponseStatistic statistic;
             string url = "http://localhost/";
             CancellationTokenSource cts = new CancellationTokenSource();
-            int number = 101;
+            int number = 1;
             Console.WriteLine("Time start - {0}", DateTime.Now);
-            List<Task> tasks = new List<Task>();
             statistic = new ResponseStatistic();
-            for (int i = 0; i < 100; i++)
-                tasks.Add(Task.Run(() =>
+            int i = 0;
+            Task t = Task.Run(() =>
+            {
+                List<Task> tasks = new List<Task>();
+                CancellationTokenSource ctsT = new CancellationTokenSource();
+                while (i < 100)
                 {
-                    List<Task> tasksRequest = new List<Task>();
-                    for (int j = 0; j < 15000; j++)
-                        tasksRequest.Add(httpClient.GetAsync(url).ContinueWith((antecedent) =>
-                        {
-                            try
+                    tasks.Add(Task.Run(() =>
+                    {
+                        List<Task> tasksRequest = new List<Task>();
+                        for (int j = 0; j < 15000; j++)
+                            tasksRequest.Add(httpClient.GetAsync(url).ContinueWith((antecedent) =>
                             {
-                                if (antecedent.Exception != null)
+                                try
+                                {
+                                    if (antecedent.Exception != null)
+                                    {
+                                        statistic.Collect(StatisticType.Failed);
+                                        return;
+                                    }
+                                    if (antecedent.Result.StatusCode == HttpStatusCode.OK)
+                                        statistic.Collect(StatisticType.Ok);
+                                    else
+                                        statistic.Collect(StatisticType.Failed);
+                                }
+                                catch (Exception)
                                 {
                                     statistic.Collect(StatisticType.Failed);
-                                    return;
                                 }
-                                if (antecedent.Result.StatusCode == HttpStatusCode.OK)
-                                    statistic.Collect(StatisticType.Ok);
-                                else
-                                    statistic.Collect(StatisticType.Failed);
-                            }
-                            catch (Exception)
-                            {
-                                statistic.Collect(StatisticType.Failed);
-                            }
-                        }));
-                    Task.WaitAll(tasksRequest.ToArray());
-                    Console.WriteLine("{0} of 100 tasks completed 15000 tasks!!!", 101 - --number);
-                    tasksRequest.Clear();
-                }, cts.Token));
+                            }));
+                        Task.WaitAll(tasksRequest.ToArray());
+                        Console.WriteLine("{0} task of tasks completed 15000 tasks!!!", number++);
+                        tasksRequest.Clear();
+                    }, ctsT.Token));
+                    i++;
+                    if (i == 100)
+                    {
+                        Task.WaitAll(tasks.Take(75).ToArray());
+                        ctsT.Cancel();
+                        tasks.Clear();
+                        i = 0;
+                    }
+                }
+            }, cts.Token);
 
             Console.WriteLine("Input Q or ESC for quit from application");
             ConsoleKeyInfo k;
@@ -53,6 +68,7 @@ namespace SendMoreHttpRequests
                     case ConsoleKey.Q:
                         {
                             cts.Cancel();
+                            Console.WriteLine("\nTime end - {0}", DateTime.Now);
                             Environment.Exit(0);
                             break;
                         }

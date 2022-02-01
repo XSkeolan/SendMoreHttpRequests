@@ -14,26 +14,42 @@ namespace SendMoreHttpRequests
             CancellationTokenSource cts = new CancellationTokenSource();
             Console.WriteLine("Time start - {0}", DateTime.Now);
 
-            var channel = Channel.CreateBounded<int>(15000);
+            BoundedChannelOptions opt = new BoundedChannelOptions(7);
+            opt.SingleReader = false;
+            opt.SingleWriter = true;
+            opt.FullMode = 0;
+
+            var channel = Channel.CreateBounded<int>(opt);
             var writer = channel.Writer;
             var reader = channel.Reader;
-            Task taskWriter = Task.Run(async () =>
-                {
-                    while (await writer.WaitToWriteAsync())
+
+            List<Task> tasksWriter = new List<Task>();
+            List<Task> tasksReader = new List<Task>();
+
+            for (int i = 0; i < 1; i++)
+            {
+                tasksWriter.Add(Task.Run(async () =>
                     {
-                        writer.TryWrite(1);
-                    }
-                }, cts.Token);
-            Task taskReader = Task.Run(async () =>
-                {
-                    while (await reader.WaitToReadAsync())
-                    {
-                        if (reader.TryRead(out _))
+                        while (await writer.WaitToWriteAsync())
                         {
-                            ReadAsync();
+                            writer.TryWrite(1);
                         }
-                    }
-                }, cts.Token);
+                    }, cts.Token));
+            }
+
+            for (int i = 0; i < 4; i++)
+            {
+                tasksReader.Add(Task.Run(async () =>
+                    {
+                        while (await reader.WaitToReadAsync())
+                        {
+                            if (reader.TryRead(out _))
+                            {
+                                ReadAsync();
+                            }
+                        }
+                    }, cts.Token));
+            }
 
             Console.WriteLine("Input Q or ESC for quit from application");
             ConsoleKeyInfo k;

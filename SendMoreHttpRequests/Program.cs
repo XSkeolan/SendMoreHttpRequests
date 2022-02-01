@@ -5,69 +5,39 @@ namespace SendMoreHttpRequests
 {
     class Program
     {
+        static HttpClient httpClient = new HttpClient();
+        static ResponseStatistic statistic = new ResponseStatistic();
+        static string url = "http://localhost/";
+
         static void Main(string[] args)
         {
-            HttpClient httpClient = new HttpClient();
-            ResponseStatistic statistic;
-            string url = "http://localhost/";
             CancellationTokenSource cts = new CancellationTokenSource();
-            int number = 1;
             Console.WriteLine("Time start - {0}", DateTime.Now);
-            statistic = new ResponseStatistic();
-            var channel = Channel.CreateBounded<Task>(100);
+
+            var channel = Channel.CreateBounded<int>(15000);
             var writer = channel.Writer;
             var reader = channel.Reader;
-            Task tWrite = Task.Run(async () =>
-            {
-                //CancellationTokenSource ctsT = new CancellationTokenSource();
-                while (await writer.WaitToWriteAsync())
+            Task taskWriter = Task.Run(async () =>
                 {
-                    Console.WriteLine("Writting task...");
-                    writer.TryWrite(Task.Run(() =>
+                    while (await writer.WaitToWriteAsync())
                     {
-                        List<Task> tasksRequest = new List<Task>();
-                        for (int j = 0; j < 15000; j++)
-                            tasksRequest.Add(httpClient.GetAsync(url).ContinueWith((antecedent) =>
-                            {
-                                try
-                                {
-                                    if (antecedent.Exception != null)
-                                    {
-                                        statistic.Collect(StatisticType.Failed);
-                                        return;
-                                    }
-                                    if (antecedent.Result.StatusCode == HttpStatusCode.OK)
-                                        statistic.Collect(StatisticType.Ok);
-                                    else
-                                        statistic.Collect(StatisticType.Failed);
-                                }
-                                catch (Exception)
-                                {
-                                    statistic.Collect(StatisticType.Failed);
-                                }
-                            }));
-                        Task.WaitAll(tasksRequest.ToArray());
-                        Console.WriteLine("{0} task of tasks completed 15000 tasks!!!", number++);
-                        tasksRequest.Clear();
-                    }));
-                }
-            }, cts.Token);
-
-            Task tRead = Task.Run(async () =>
-            {
-                Task currentTask;
-                while (await reader.WaitToReadAsync())
+                        writer.TryWrite(1);
+                    }
+                }, cts.Token);
+            Task taskReader = Task.Run(async () =>
                 {
-                    Console.WriteLine("Reading task...");
-                    reader.TryRead(out currentTask);
-                    if(currentTask != null)
-                        await currentTask;
-                }
-            }, cts.Token);
+                    while (await reader.WaitToReadAsync())
+                    {
+                        if (reader.TryRead(out _))
+                        {
+                            ReadAsync();
+                        }
+                    }
+                }, cts.Token);
 
             Console.WriteLine("Input Q or ESC for quit from application");
             ConsoleKeyInfo k;
-            while(true)
+            while (true)
             {
                 k = Console.ReadKey(false);
                 switch (k.Key)
@@ -85,6 +55,33 @@ namespace SendMoreHttpRequests
                         break;
                 }
             }
+        }
+
+        static Task ReadAsync()
+        {
+            return httpClient.GetAsync(url).ContinueWith((antecedent) =>
+            {
+                try
+                {
+                    if (antecedent.Exception != null)
+                    {
+                        statistic.Collect(StatisticType.Failed);
+                        return;
+                    }
+                    if (antecedent.Result.StatusCode == HttpStatusCode.OK)
+                    {
+                        statistic.Collect(StatisticType.Ok);
+                    }
+                    else
+                    {
+                        statistic.Collect(StatisticType.Failed);
+                    }
+                }
+                catch (Exception)
+                {
+                    statistic.Collect(StatisticType.Failed);
+                }
+            });
         }
     }
 }
